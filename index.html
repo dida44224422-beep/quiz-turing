@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Quiz Alan Turing</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #222;
+      color: white;
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .quiz-container {
+      background: #333;
+      padding: 20px;
+      border-radius: 15px;
+      width: 90%;
+      max-width: 400px;
+      text-align: center;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+      position: relative;
+      z-index: 2;
+    }
+    .question {
+      font-size: 1.2em;
+      margin-bottom: 15px;
+    }
+    button {
+      display: block;
+      width: 100%;
+      margin: 8px 0;
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      font-size: 1em;
+      cursor: pointer;
+      background: #3498db;
+      color: white;
+      transition: 0.3s;
+    }
+    button:hover {
+      background: #2980b9;
+    }
+    .correct {
+      background: #27ae60 !important;
+    }
+    .wrong {
+      background: #e74c3c !important;
+    }
+    #timer {
+      font-size: 1.2em;
+      margin-bottom: 10px;
+      color: #f1c40f;
+    }
+    #score {
+      font-size: 1.5em;
+      margin-top: 20px;
+      font-weight: bold;
+    }
+    /* Barra de progreso */
+    #progress {
+      height: 10px;
+      background: #555;
+      border-radius: 5px;
+      overflow: hidden;
+      margin-bottom: 15px;
+    }
+    #progress-bar {
+      height: 100%;
+      width: 0%;
+      background: #27ae60;
+      transition: width 0.3s ease;
+    }
+    /* Efecto de vibración */
+    .shake {
+      animation: shake 0.3s;
+    }
+    @keyframes shake {
+      0% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      50% { transform: translateX(5px); }
+      75% { transform: translateX(-5px); }
+      100% { transform: translateX(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="quiz-container">
+    <h2>Quiz: Alan Turing y Enigma</h2>
+    <div id="progress"><div id="progress-bar"></div></div>
+    <div id="timer">Tiempo: 15</div>
+    <div id="quiz"></div>
+    <div id="score"></div>
+  </div>
+
+  <!-- librería de confeti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <script>
+    const quizData = [
+      {
+        question: "1. ¿Por qué era tan difícil descifrar la máquina Enigma?",
+        options: [
+          "Porque cambiaba su configuración a diario con millones de combinaciones",
+          "Porque estaba hecha de un material muy resistente",
+          "Porque solo podía usarse de noche"
+        ],
+        answer: 0
+      },
+      {
+        question: "2. ¿Qué aspecto personal de Turing fue llamativo en la película?",
+        options: [
+          "Que le gustaba la jardinería",
+          "Que sufrió discriminación por su orientación sexual",
+          "Que nunca trabajó en equipo"
+        ],
+        answer: 1
+      },
+      {
+        question: "3. ¿Cómo logró Turing descifrar Enigma?",
+        options: [
+          "Con una máquina que probaba combinaciones rápidamente junto a su equipo",
+          "Memorizando todas las claves posibles",
+          "Hackeando con una computadora moderna"
+        ],
+        answer: 0
+      },
+      {
+        question: "4. ¿Qué mensaje deja el papel del equipo en la película?",
+        options: [
+          "Que Turing pudo hacerlo solo",
+          "Que la colaboración fue fundamental para lograrlo",
+          "Que los equipos siempre fallan"
+        ],
+        answer: 1
+      },
+      {
+        question: "5. ¿Qué impacto tuvo descifrar Enigma en la guerra?",
+        options: [
+          "Acortó la guerra y salvó millones de vidas",
+          "No tuvo impacto significativo",
+          "Provocó que la guerra durara más"
+        ],
+        answer: 0
+      },
+      {
+        question: "6. ¿Qué enseñanza nos deja la historia de Turing?",
+        options: [
+          "Valorar la innovación y respetar la diversidad",
+          "Que la inteligencia no sirve sin fama",
+          "Que debemos evitar ideas diferentes"
+        ],
+        answer: 0
+      }
+    ];
+
+    let currentQuestion = 0;
+    let score = 0;
+    let timer;
+    let timeLeft = 15;
+
+    const quizContainer = document.getElementById("quiz");
+    const scoreContainer = document.getElementById("score");
+    const timerDisplay = document.getElementById("timer");
+    const progressBar = document.getElementById("progress-bar");
+
+    // Sonidos online
+    const correctSound = new Audio("https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg");
+    const wrongSound = new Audio("https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg");
+
+    function startTimer() {
+      timeLeft = 15;
+      timerDisplay.textContent = `Tiempo: ${timeLeft}`;
+      timer = setInterval(() => {
+        timeLeft--;
+        timerDisplay.textContent = `Tiempo: ${timeLeft}`;
+        if (timeLeft <= 0) {
+          clearInterval(timer);
+          currentQuestion++;
+          loadQuestion();
+        }
+      }, 1000);
+    }
+
+    function loadQuestion() {
+      clearInterval(timer);
+      if (currentQuestion < quizData.length) {
+        let q = quizData[currentQuestion];
+        quizContainer.innerHTML = `
+          <div class="question">${q.question}</div>
+          ${q.options.map((opt, index) =>
+            `<button onclick="checkAnswer(${index}, this)">${opt}</button>`
+          ).join("")}
+        `;
+
+        // actualizar barra de progreso
+        let progress = ((currentQuestion) / quizData.length) * 100;
+        progressBar.style.width = progress + "%";
+
+        startTimer();
+      } else {
+        quizContainer.innerHTML = "";
+        let mensaje = score >= 5 ? "🔥 Crack, te la sabes toda!" :
+                      score >= 3 ? "👌 Bien hecho, pero puedes mejorar." :
+                      "😅 Toca estudiar un poquito más.";
+        scoreContainer.innerHTML = `🎉 Tu puntaje final: ${score} / ${quizData.length}<br>${mensaje}`;
+        timerDisplay.textContent = "";
+        progressBar.style.width = "100%";
+
+        // 🎉 Confeti si sacó puntaje perfecto
+        if (score === quizData.length) {
+          launchConfetti();
+        }
+      }
+    }
+
+    function checkAnswer(selected, btn) {
+      clearInterval(timer);
+      let buttons = document.querySelectorAll("button");
+      buttons.forEach((b, i) => {
+        if (i === quizData[currentQuestion].answer) {
+          b.classList.add("correct");
+        } else if (i === selected) {
+          b.classList.add("wrong");
+        }
+        b.disabled = true;
+      });
+
+      if (selected === quizData[currentQuestion].answer) {
+        score++;
+        correctSound.play();
+      } else {
+        wrongSound.play();
+        document.querySelector(".quiz-container").classList.add("shake");
+        setTimeout(() => {
+          document.querySelector(".quiz-container").classList.remove("shake");
+        }, 500);
+      }
+
+      setTimeout(() => {
+        currentQuestion++;
+        loadQuestion();
+      }, 1500);
+    }
+
+    function launchConfetti() {
+      let duration = 3 * 1000;
+      let end = Date.now() + duration;
+
+      (function frame() {
+        confetti({
+          particleCount: 5,
+          angle: 60,
+          spread: 55,
+          origin: { x: 0 }
+        });
+        confetti({
+          particleCount: 5,
+          angle: 120,
+          spread: 55,
+          origin: { x: 1 }
+        });
+
+        if (Date.now() < end) {
+          requestAnimationFrame(frame);
+        }
+      })();
+    }
+
+    loadQuestion();
+  </script>
+</body>
+</html>
